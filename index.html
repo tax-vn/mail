@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Mail Ảo - SMTP.dev</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-6">
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <h1 class="text-xl font-bold text-gray-900 mb-4"><i class="fa-solid fa-wand-magic-sparkles text-purple-600 mr-2"></i> Trình quản lý Mail Ảo</h1>
+        
+        <!-- Chọn Domain và nhập tên tiền tố -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Chọn Domain</label>
+                <select id="domainSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-blue-700">
+                    <option value="dulieu.io.vn">dulieu.io.vn (Mặc định)</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Tên email ảo muốn tạo (Prefix)</label>
+                    <input type="text" id="emailPrefix" placeholder="vd: taikhoantest01" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Mật khẩu hòm thư</label>
+                    <input type="text" id="emailPass" value="P@ss123456" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+            </div>
+
+            <button onclick="createVirtualEmail()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                <i class="fa-solid fa-plus mr-2"></i> Tạo Hòm Thư Ảo Ngay
+            </button>
+        </div>
+
+        <!-- Kết quả hiển thị hòm thư -->
+        <div id="resultBox" class="mt-6 hidden border-t pt-4">
+            <h2 class="text-sm font-bold text-gray-700 mb-2">Email ảo hiện tại của bạn:</h2>
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <span id="createdEmailText" class="font-mono text-blue-600 font-semibold text-sm"></span>
+                <button onclick="checkInbox()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 cursor-pointer">
+                    <i class="fa-solid fa-rotate mr-1"></i> Làm mới hộp thư
+                </button>
+            </div>
+        </div>
+
+        <!-- Hộp thư đến (Hiển thị dạng danh sách gọn gàng) -->
+        <div class="mt-6">
+            <h2 class="text-sm font-bold text-gray-700 mb-2"><i class="fa-solid fa-inbox mr-1"></i> Hộp thư đến (Inbox):</h2>
+            <div id="messageList" class="space-y-3">
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 italic text-center">
+                    Chưa tạo hòm thư hoặc chưa có tin nhắn nào...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "smtplabs_t5dvS7BKvEKTNQ3yz1djoYZsn1yZkLQTfYWPHozezSZWXaQ4";
+        const BASE_URL = "https://api.smtp.dev";
+        const HEADERS = {
+            "X-API-KEY": API_KEY,
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        };
+
+        let currentAccountId = null;
+        let currentInboxId = null;
+
+        async function loadDomains() {
+            try {
+                const res = await fetch(`${BASE_URL}/domains`, { headers: HEADERS });
+                const data = await res.json();
+                const select = document.getElementById('domainSelect');
+                const domains = data.member || data || [];
+                if (domains.length > 0) {
+                    select.innerHTML = '';
+                    domains.forEach(d => {
+                        const domainName = typeof d === 'string' ? d : d.domain;
+                        if (domainName) {
+                            select.innerHTML += `<option value="${domainName}">${domainName}</option>`;
+                        }
+                    });
+                }
+            } catch (err) {
+                console.log("Dùng domain mặc định");
+            }
+        }
+        loadDomains();
+
+        async function createVirtualEmail() {
+            const domain = document.getElementById('domainSelect').value;
+            const prefix = document.getElementById('emailPrefix').value.trim();
+            const password = document.getElementById('emailPass').value;
+
+            if (!prefix) {
+                alert('Vui lòng nhập tên email muốn tạo!');
+                return;
+            }
+
+            const fullAddress = `${prefix}@${domain}`;
+
+            try {
+                const res = await fetch(`${BASE_URL}/accounts`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ address: fullAddress, password: password, isActive: true })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    currentAccountId = data.id;
+                    const mailboxes = data.mailboxes || [];
+                    const inboxBox = mailboxes.find(m => m.path === 'INBOX') || mailboxes[0];
+                    if (inboxBox) currentInboxId = inboxBox.id;
+
+                    document.getElementById('resultBox').classList.remove('hidden');
+                    document.getElementById('createdEmailText').textContent = fullAddress;
+                    checkInbox(); // Tự động load hộp thư luôn
+                } else {
+                    alert('Lỗi tạo mail: ' + (data.detail || JSON.stringify(data)));
+                }
+            } catch (err) {
+                alert('Lỗi kết nối: ' + err.message);
+            }
+        }
+
+        async function checkInbox() {
+            if (!currentAccountId || !currentInboxId) {
+                alert('Bạn cần tạo hòm thư ảo trước!');
+                return;
+            }
+
+            const messageListDiv = document.getElementById('messageList');
+            messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg text-sm text-gray-500 text-center"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải tin nhắn...</div>';
+
+            try {
+                const res = await fetch(`${BASE_URL}/accounts/${currentAccountId}/mailboxes/${currentInboxId}/messages`, {
+                    headers: HEADERS
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    const messages = data.member || data || [];
+                    if (messages.length === 0) {
+                        messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 italic text-center">Hộp thư hiện đang trống (0 thư).</div>';
+                    } else {
+                        messageListDiv.innerHTML = '';
+                        messages.forEach((msg, index) => {
+                            const sender = msg.from ? (msg.from.name ? `${msg.from.name} (${msg.from.address})` : msg.from.address) : 'Không rõ';
+                            const subject = msg.subject || '(Không có tiêu đề)';
+                            const date = new Date(msg.date).toLocaleString('vi-VN');
+                            const textContent = msg.text || msg.intro || 'Không có nội dung văn bản';
+                            
+                            // Xử lý hiển thị nội dung HTML nếu có
+                            let htmlContent = '';
+                            if (msg.html) {
+                                if (Array.isArray(msg.html)) {
+                                    htmlContent = msg.html.join('<br>');
+                                } else if (typeof msg.html === 'string') {
+                                    htmlContent = msg.html;
+                                }
+                            }
+
+                            messageListDiv.innerHTML += `
+                                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-2">
+                                    <div class="flex justify-between items-start border-b pb-2">
+                                        <div>
+                                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">Thư #${index + 1}</span>
+                                            <span class="text-xs text-gray-500 ml-2"><i class="fa-regular fa-clock mr-1"></i>${date}</span>
+                                        </div>
+                                        <span class="text-xs font-mono text-gray-400">ID: ${msg.id.substring(0, 8)}...</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600"><strong>Từ:</strong> <span class="text-gray-900">${sender}</span></div>
+                                    <div class="text-sm font-bold text-gray-950"><strong>Tiêu đề:</strong> ${subject}</div>
+                                    <div class="bg-gray-50 p-3 rounded border border-gray-100 text-xs text-gray-800 whitespace-pre-wrap font-sans">
+                                        <strong>Nội dung:</strong><br>${textContent}
+                                    </div>
+                                    ${htmlContent ? `<div class="mt-2 p-2 bg-blue-50/50 rounded border border-blue-100 text-xs"><strong>HTML Preview:</strong><div class="mt-1">${htmlContent}</div></div>` : ''}
+                                </div>
+                            `;
+                        });
+                    }
+                } else {
+                    messageListDiv.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg text-sm">Lỗi tải tin nhắn: ${JSON.stringify(data)}</div>`;
+                }
+            } catch (err) {
+                messageListDiv.innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg text-sm">Lỗi kết nối: ${err.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
