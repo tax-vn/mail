@@ -3,56 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tạo Mail Ảo - SMTP.dev</title>
+    <title>Quản lý Mail Ảo & Khôi phục Dữ liệu - SMTP.dev</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans p-6">
-    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <h1 class="text-xl font-bold text-gray-900 mb-4"><i class="fa-solid fa-wand-magic-sparkles text-purple-600 mr-2"></i> Trình quản lý Mail Ảo</h1>
+    <div class="max-w-4xl mx-auto space-y-6">
         
-        <!-- Chọn Domain và nhập tên tiền tố -->
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Chọn Domain</label>
-                <select id="domainSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-blue-700">
-                    <option value="dulieu.io.vn">dulieu.io.vn (Mặc định)</option>
-                </select>
+        <!-- Header & Tạo / Kết nối Mail -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h1 class="text-xl font-bold text-gray-900 mb-4"><i class="fa-solid fa-clock-rotate-left text-purple-600 mr-2"></i> Trình quản lý Mail Ảo & Dữ liệu 7 ngày</h1>
+            
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Chọn Domain</label>
+                        <select id="domainSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-blue-700">
+                            <option value="dulieu.io.vn">dulieu.io.vn (Mặc định)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Tên tiền tố (Prefix)</label>
+                        <input type="text" id="emailPrefix" placeholder="vd: 0313091206" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Mật khẩu hòm thư</label>
+                        <input type="text" id="emailPass" value="Misa1601*" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="getOrCreateAccount()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+                        <i class="fa-solid fa-link mr-2"></i> Kết nối / Lấy dữ liệu hòm thư
+                    </button>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Trạng thái hòm thư hiện tại -->
+            <div id="resultBox" class="mt-4 hidden bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between text-sm">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Tên email ảo muốn tạo (Prefix)</label>
-                    <input type="text" id="emailPrefix" placeholder="vd: taikhoantest01" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <span class="text-xs text-gray-500 block">Đang kết nối hòm thư:</span>
+                    <span id="createdEmailText" class="font-mono text-blue-700 font-bold"></span>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1">Mật khẩu hòm thư</label>
-                    <input type="text" id="emailPass" value="P@ss123456" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <div class="flex gap-2">
+                    <button onclick="checkInbox()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 cursor-pointer">
+                        <i class="fa-solid fa-rotate mr-1"></i> Làm mới / Tải lại thư
+                    </button>
                 </div>
             </div>
-
-            <button onclick="createVirtualEmail()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
-                <i class="fa-solid fa-plus mr-2"></i> Tạo Hòm Thư Ảo Ngay
-            </button>
         </div>
 
-        <!-- Kết quả hiển thị hòm thư -->
-        <div id="resultBox" class="mt-6 hidden border-t pt-4">
-            <h2 class="text-sm font-bold text-gray-700 mb-2">Email ảo hiện tại của bạn:</h2>
-            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <span id="createdEmailText" class="font-mono text-blue-600 font-semibold text-sm"></span>
-                <button onclick="checkInbox()" class="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 cursor-pointer">
-                    <i class="fa-solid fa-rotate mr-1"></i> Làm mới hộp thư
-                </button>
+        <!-- Lịch sử các hòm thư đã tạo -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h2 class="text-sm font-bold text-gray-700 mb-3"><i class="fa-solid fa-history mr-1"></i> Lịch sử hòm thư gần đây:</h2>
+            <div id="savedAccountsList" class="flex flex-wrap gap-2">
+                <span class="text-xs text-gray-400 italic">Chưa có lịch sử hòm thư nào được lưu.</span>
             </div>
         </div>
 
-        <!-- Hộp thư đến (Hiển thị dạng danh sách gọn gàng) -->
-        <div class="mt-6">
-            <h2 class="text-sm font-bold text-gray-700 mb-2"><i class="fa-solid fa-inbox mr-1"></i> Hộp thư đến (Inbox):</h2>
+        <!-- Hộp thư đến (Messages) -->
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-bold text-gray-700"><i class="fa-solid fa-inbox mr-1"></i> Hộp thư đến (Lưu trữ 7 ngày):</h2>
+                <span id="msgCountBadge" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-semibold">0 thư</span>
+            </div>
+            
             <div id="messageList" class="space-y-3">
                 <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 italic text-center">
-                    Chưa tạo hòm thư hoặc chưa có tin nhắn nào...
+                    Chưa kết nối hòm thư hoặc chưa có tin nhắn nào...
                 </div>
             </div>
         </div>
@@ -91,37 +109,101 @@
         }
         loadDomains();
 
-        async function createVirtualEmail() {
+        function saveAccountToHistory(id, address, inboxId) {
+            let history = JSON.parse(localStorage.getItem('smtp_dev_history') || '[]');
+            history = history.filter(item => item.address !== address);
+            history.unshift({ id, address, inboxId, time: new Date().toLocaleString('vi-VN') });
+            if (history.length > 10) history.pop();
+            localStorage.setItem('smtp_dev_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const listDiv = document.getElementById('savedAccountsList');
+            let history = JSON.parse(localStorage.getItem('smtp_dev_history') || '[]');
+            
+            if (history.length === 0) {
+                listDiv.innerHTML = '<span class="text-xs text-gray-400 italic">Chưa có lịch sử hòm thư nào được lưu.</span>';
+                return;
+            }
+
+            listDiv.innerHTML = '';
+            history.forEach(acc => {
+                listDiv.innerHTML += `
+                    <button onclick="selectAccount('${acc.id}', '${acc.address}', '${acc.inboxId}')" class="bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-700 text-xs px-3 py-1.5 rounded-lg border border-gray-200 transition flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-envelope text-gray-400"></i> ${acc.address}
+                    </button>
+                `;
+            });
+        }
+        renderHistory();
+
+        function selectAccount(id, address, inboxId) {
+            currentAccountId = id;
+            currentInboxId = inboxId;
+            document.getElementById('resultBox').classList.remove('hidden');
+            document.getElementById('createdEmailText').textContent = address;
+            checkInbox();
+        }
+
+        // Tự động tìm kiếm nếu đã tồn tại, hoặc tạo mới nếu chưa có
+        async function getOrCreateAccount() {
             const domain = document.getElementById('domainSelect').value;
             const prefix = document.getElementById('emailPrefix').value.trim();
             const password = document.getElementById('emailPass').value;
 
             if (!prefix) {
-                alert('Vui lòng nhập tên email muốn tạo!');
+                alert('Vui lòng nhập tên tiền tố email!');
                 return;
             }
 
             const fullAddress = `${prefix}@${domain}`;
 
             try {
+                // 1. Thử gọi API tạo mới trước
                 const res = await fetch(`${BASE_URL}/accounts`, {
                     method: 'POST',
                     headers: HEADERS,
                     body: JSON.stringify({ address: fullAddress, password: password, isActive: true })
                 });
 
-                const data = await res.json();
+                let data = await res.json();
+
                 if (res.ok) {
                     currentAccountId = data.id;
                     const mailboxes = data.mailboxes || [];
                     const inboxBox = mailboxes.find(m => m.path === 'INBOX') || mailboxes[0];
                     if (inboxBox) currentInboxId = inboxBox.id;
 
-                    document.getElementById('resultBox').classList.remove('hidden');
-                    document.getElementById('createdEmailText').textContent = fullAddress;
-                    checkInbox(); // Tự động load hộp thư luôn
+                    saveAccountToHistory(currentAccountId, fullAddress, currentInboxId);
+                    selectAccount(currentAccountId, fullAddress, currentInboxId);
                 } else {
-                    alert('Lỗi tạo mail: ' + (data.detail || JSON.stringify(data)));
+                    // 2. Nếu đã tồn tại (lỗi), ta thực hiện tìm kiếm tài khoản đó theo địa chỉ email
+                    const searchRes = await fetch(`${BASE_URL}/accounts?address=${encodeURIComponent(fullAddress)}`, {
+                        headers: HEADERS
+                    });
+                    const searchData = await searchRes.json();
+                    const accounts = searchData.member || searchData || [];
+
+                    if (accounts.length > 0) {
+                        const acc = accounts[0];
+                        currentAccountId = acc.id;
+                        
+                        // Lấy danh sách mailboxes của account này
+                        const boxRes = await fetch(`${BASE_URL}/accounts/${currentAccountId}/mailboxes`, {
+                            headers: HEADERS
+                        });
+                        const boxData = await boxRes.json();
+                        const boxes = boxData.member || boxData || [];
+                        const inboxBox = boxes.find(m => m.path === 'INBOX') || boxes[0];
+                        
+                        if (inboxBox) currentInboxId = inboxBox.id;
+
+                        saveAccountToHistory(currentAccountId, fullAddress, currentInboxId);
+                        selectAccount(currentAccountId, fullAddress, currentInboxId);
+                    } else {
+                        alert('Không thể tìm thấy hoặc tạo tài khoản: ' + JSON.stringify(data));
+                    }
                 }
             } catch (err) {
                 alert('Lỗi kết nối: ' + err.message);
@@ -130,12 +212,12 @@
 
         async function checkInbox() {
             if (!currentAccountId || !currentInboxId) {
-                alert('Bạn cần tạo hòm thư ảo trước!');
+                alert('Vui lòng kết nối hòm thư trước!');
                 return;
             }
 
             const messageListDiv = document.getElementById('messageList');
-            messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg text-sm text-gray-500 text-center"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải tin nhắn...</div>';
+            messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg text-sm text-gray-500 text-center"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải dữ liệu email cũ...</div>';
 
             try {
                 const res = await fetch(`${BASE_URL}/accounts/${currentAccountId}/mailboxes/${currentInboxId}/messages`, {
@@ -145,8 +227,10 @@
 
                 if (res.ok) {
                     const messages = data.member || data || [];
+                    document.getElementById('msgCountBadge').textContent = `${messages.length} thư`;
+
                     if (messages.length === 0) {
-                        messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 italic text-center">Hộp thư hiện đang trống (0 thư).</div>';
+                        messageListDiv.innerHTML = '<div class="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-500 italic text-center">Hộp thư hiện đang trống hoặc đã quá hạn 7 ngày.</div>';
                     } else {
                         messageListDiv.innerHTML = '';
                         messages.forEach((msg, index) => {
@@ -155,7 +239,6 @@
                             const date = new Date(msg.date).toLocaleString('vi-VN');
                             const textContent = msg.text || msg.intro || 'Không có nội dung văn bản';
                             
-                            // Xử lý hiển thị nội dung HTML nếu có
                             let htmlContent = '';
                             if (msg.html) {
                                 if (Array.isArray(msg.html)) {
@@ -169,7 +252,7 @@
                                 <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-2">
                                     <div class="flex justify-between items-start border-b pb-2">
                                         <div>
-                                            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">Thư #${index + 1}</span>
+                                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-semibold">Thư #${index + 1}</span>
                                             <span class="text-xs text-gray-500 ml-2"><i class="fa-regular fa-clock mr-1"></i>${date}</span>
                                         </div>
                                         <span class="text-xs font-mono text-gray-400">ID: ${msg.id.substring(0, 8)}...</span>
